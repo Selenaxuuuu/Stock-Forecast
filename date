@@ -1,0 +1,123 @@
+import pandas as pd
+import numpy as np   
+import kagglehub
+
+# Download latest version
+path = kagglehub.dataset_download("borismarjanovic/price-volume-data-for-all-us-stocks-etfs")
+
+print("Path to dataset files:", path)
+     
+Using Colab cache for faster access to the 'price-volume-data-for-all-us-stocks-etfs' dataset.
+Path to dataset files: /kaggle/input/price-volume-data-for-all-us-stocks-etfs
+
+#1111
+import os
+
+# 打印一下下载路径，看看里面有什么文件夹
+print(f"数据下载到了: {path}")
+print("文件夹里的内容:", os.listdir(path))
+
+# 通常这个数据集里会有 'Stocks' 和 'ETFs' 两个子文件夹
+# 我们把目标锁定在 ETFs 文件夹
+stocks_path = os.path.join(path, 'Stocks')
+
+if os.path.exists(stocks_path):
+    print(f"找到 Stocks 文件夹: {stocks_path}")
+    # 随便看前 5 个文件名，确认是 txt 还是 csv
+    print("前5个文件:", os.listdir(stocks_path)[:5])
+else:
+    print("⚠️ 没找到 Stocks 文件夹，请检查上面的打印内容")
+     
+数据下载到了: /kaggle/input/price-volume-data-for-all-us-stocks-etfs
+文件夹里的内容: ['Stocks', 'ETFs', 'Data']
+找到 Stocks 文件夹: /kaggle/input/price-volume-data-for-all-us-stocks-etfs/Stocks
+前5个文件: ['ufi.us.txt', 'vfl.us.txt', 'sohu.us.txt', 'rdcm.us.txt', 'virt.us.txt']
+
+#2222
+import pandas as pd
+import glob
+from tqdm import tqdm # 进度条工具，让你知道处理到哪了
+
+# 获取所有 txt 文件的路径
+# 这个数据集通常是 .txt 结尾，逗号分隔
+all_files = glob.glob(os.path.join(stocks_path, "*.txt"))
+
+# 关键步骤：为了防止内存溢出，我们只取前 1344 个文件
+# (想跑全部，可以把 [:1500] 去掉，但 Colab 可能会崩)
+target_files = all_files[:1344]
+
+print(f"总共有 {len(all_files)} 个文件，我们将处理前 {len(target_files)} 个...")
+
+# 循环读取
+df_list = []
+
+# 使用 tqdm 显示进度条
+for filename in tqdm(target_files):
+    try:
+        # 读取文件 (该数据集通常没有表头，或者表头是 Date,Open,High,Low,Close,Volume,OpenInt)
+        # 加上 on_bad_lines='skip' 防止因为某一行坏数据导致报错
+        temp_df = pd.read_csv(filename, sep=',', on_bad_lines='skip')
+
+        # 提取文件名作为 Ticker (例如 'aapl.us.txt' -> 'aapl')
+        ticker_name = os.path.basename(filename).split('.')[0].upper()
+        temp_df['Ticker'] = ticker_name
+
+        # 简单清洗：列名统一转小写或首字母大写
+        temp_df.columns = [c.capitalize() for c in temp_df.columns]
+
+        df_list.append(temp_df)
+    except Exception as e:
+        print(f"读取 {filename} 失败: {e}")
+
+# 合并
+print("正在合并大表...")
+full_df = pd.concat(df_list, axis=0, ignore_index=True)
+
+# 格式标准化
+# 确保列名是我们需要的 Date, Open, High, Low, Close, Volume, OpenInt
+# 这里做一个重命名映射，防止列名对不上
+full_df = full_df.rename(columns={'Date': 'Date', 'Open': 'Open', 'High': 'High',
+                                  'Low': 'Low', 'Close': 'Close', 'Volume': 'Volume',
+                                  'Openint': 'OpenInt'})
+
+full_df['Date'] = pd.to_datetime(full_df['Date'])
+full_df = full_df.sort_values(['Ticker', 'Date']).reset_index(drop=True)
+
+print("✅ 合并完成！")
+print(full_df.info())
+print(full_df.head())
+     
+总共有 7195 个文件，我们将处理前 1344 个...
+  6%|▋         | 87/1344 [00:01<00:17, 70.91it/s]
+读取 /kaggle/input/price-volume-data-for-all-us-stocks-etfs/Stocks/sbt.us.txt 失败: No columns to parse from file
+  8%|▊         | 111/1344 [00:01<00:16, 75.02it/s]
+读取 /kaggle/input/price-volume-data-for-all-us-stocks-etfs/Stocks/srva.us.txt 失败: No columns to parse from file
+ 40%|████      | 543/1344 [00:07<00:10, 75.80it/s]
+读取 /kaggle/input/price-volume-data-for-all-us-stocks-etfs/Stocks/pxus.us.txt 失败: No columns to parse from file
+ 99%|█████████▊| 1325/1344 [00:18<00:00, 79.71it/s]
+读取 /kaggle/input/price-volume-data-for-all-us-stocks-etfs/Stocks/stnl.us.txt 失败: No columns to parse from file
+100%|██████████| 1344/1344 [00:18<00:00, 71.92it/s]
+正在合并大表...
+✅ 合并完成！
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 2778431 entries, 0 to 2778430
+Data columns (total 8 columns):
+ #   Column   Dtype         
+---  ------   -----         
+ 0   Date     datetime64[ns]
+ 1   Open     float64       
+ 2   High     float64       
+ 3   Low      float64       
+ 4   Close    float64       
+ 5   Volume   int64         
+ 6   OpenInt  int64         
+ 7   Ticker   object        
+dtypes: datetime64[ns](1), float64(4), int64(2), object(1)
+memory usage: 169.6+ MB
+None
+        Date   Open   High    Low  Close  Volume  OpenInt Ticker
+0 2013-09-26  10.00  10.09   9.37   9.96  948900        0   AAOI
+1 2013-09-27  10.06  10.44  10.00  10.10  253329        0   AAOI
+2 2013-09-30  10.00  10.18   9.71  10.00   84800        0   AAOI
+3 2013-10-01   9.95  10.02   9.92  10.00   74500        0   AAOI
+4 2013-10-02   9.99  10.00   9.89   9.97   94000        0   AAOI
