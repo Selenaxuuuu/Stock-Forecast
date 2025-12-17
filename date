@@ -7,8 +7,6 @@ path = kagglehub.dataset_download("borismarjanovic/price-volume-data-for-all-us-
 
 print("Path to dataset files:", path)
      
-Using Colab cache for faster access to the 'price-volume-data-for-all-us-stocks-etfs' dataset.
-Path to dataset files: /kaggle/input/price-volume-data-for-all-us-stocks-etfs
 
 #1111
 import os
@@ -22,16 +20,13 @@ print("文件夹里的内容:", os.listdir(path))
 stocks_path = os.path.join(path, 'Stocks')
 
 if os.path.exists(stocks_path):
-    print(f"找到 Stocks 文件夹: {stocks_path}")
+    print(f"find Stocks : {stocks_path}")
     # 随便看前 5 个文件名，确认是 txt 还是 csv
-    print("前5个文件:", os.listdir(stocks_path)[:5])
+    print("top 5:", os.listdir(stocks_path)[:5])
 else:
-    print("⚠️ 没找到 Stocks 文件夹，请检查上面的打印内容")
+    print("没找到 Stocks 文件夹，请检查上面的打印内容")
      
-数据下载到了: /kaggle/input/price-volume-data-for-all-us-stocks-etfs
-文件夹里的内容: ['Stocks', 'ETFs', 'Data']
-找到 Stocks 文件夹: /kaggle/input/price-volume-data-for-all-us-stocks-etfs/Stocks
-前5个文件: ['ufi.us.txt', 'vfl.us.txt', 'sohu.us.txt', 'rdcm.us.txt', 'virt.us.txt']
+
 
 #2222
 import pandas as pd
